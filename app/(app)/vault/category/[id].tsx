@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,23 +7,26 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-} from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { useVault } from "../../../../src/contexts/VaultContext";
-import * as vaultService from "../../../../src/services/vault";
-import type { VaultCategory, VaultItem } from "../../../../src/types";
-import { VaultUnlockGate } from "@/src/components/VaultUnlockGate";
+  Linking,
+} from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useVault } from '../../../../src/contexts/VaultContext';
+import * as vaultService from '../../../../src/services/vault';
+import type { VaultCategory, VaultItem } from '../../../../src/types';
+import { VaultUnlockGate } from '@/src/components/VaultUnlockGate';
 
 const typeIcon: Record<string, keyof typeof Ionicons.glyphMap> = {
-  note: "document-text-outline",
-  possession: "cube-outline",
-  document: "document-outline",
-  memory_ref: "images-outline",
+  note: 'document-text-outline',
+  possession: 'cube-outline',
+  document: 'document-outline',
+  memory_ref: 'images-outline',
 };
 
 export default function VaultCategoryScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const insets = useSafeAreaInsets();
   const {
     categoryItems,
     categoryItemsLoading,
@@ -47,7 +50,7 @@ export default function VaultCategoryScreen() {
         if (!cancelled) setCategory(c);
         await loadCategoryItems(id);
       } catch (e: any) {
-        Alert.alert("Error", e?.message ?? "Could not open category");
+        Alert.alert('Error', e?.message ?? 'Could not open category');
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -62,50 +65,82 @@ export default function VaultCategoryScreen() {
   const handleDeleteCategory = () => {
     if (!category) return;
     Alert.alert(
-      "Delete category",
+      'Delete category',
       `Delete “${category.title}” and all items inside?`,
       [
-        { text: "Cancel", style: "cancel" },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: "Delete",
-          style: "destructive",
+          text: 'Delete',
+          style: 'destructive',
           onPress: async () => {
             try {
               await removeCategory(category.id);
-              router.replace("/(app)/(tabs)/vault");
+              router.replace('/(app)/(tabs)/vault');
             } catch (e: any) {
-              Alert.alert("Error", e?.message ?? "Could not delete");
+              Alert.alert('Error', e?.message ?? 'Could not delete');
             }
           },
         },
-      ],
+      ]
     );
   };
 
   const handleDeleteItem = (item: VaultItem) => {
-    Alert.alert("Delete item", `Remove “${item.title}”?`, [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert('Delete item', `Remove “${item.title}”?`, [
+      { text: 'Cancel', style: 'cancel' },
       {
-        text: "Delete",
-        style: "destructive",
-        onPress: () => removeItem(item.id),
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await removeItem(item); // passes filePath for Supabase cleanup
+          } catch (e: any) {
+            Alert.alert('Error', e?.message ?? 'Could not delete');
+          }
+        },
       },
     ]);
   };
 
+  /** Open attached file or image in browser / system viewer */
+  const openItem = async (item: VaultItem) => {
+    const url = item.fileUrl || item.imageUrl;
+    if (!url) {
+      Alert.alert(
+        item.title,
+        item.description || 'No file attached to this item.'
+      );
+      return;
+    }
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (!supported) {
+        Alert.alert('Cannot open', 'No app available for this file.');
+        return;
+      }
+      await Linking.openURL(url);
+    } catch (e: any) {
+      Alert.alert('Error', e?.message ?? 'Could not open file');
+    }
+  };
+
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <ActivityIndicator size="large" color="#7C3AED" />
-      </View>
+      <VaultUnlockGate>
+        <View className="flex-1 items-center justify-center bg-surface">
+          <ActivityIndicator size="large" color="#7C3AED" />
+        </View>
+      </VaultUnlockGate>
     );
   }
 
   if (!category) {
     return (
-      <View className="flex-1 items-center justify-center bg-surface">
-        <Text className="text-ink">Category not found</Text>
-      </View>
+      <VaultUnlockGate>
+        <View className="flex-1 items-center justify-center bg-surface">
+          <Text className="text-ink">Category not found</Text>
+        </View>
+      </VaultUnlockGate>
     );
   }
 
@@ -115,11 +150,12 @@ export default function VaultCategoryScreen() {
         <ScrollView
           contentContainerStyle={{
             paddingHorizontal: 20,
-            paddingBottom: 100,
-            paddingTop: 56,
+            paddingBottom: 100 + insets.bottom,
+            paddingTop: Math.max(insets.top, 12) + 44,
           }}
           showsVerticalScrollIndicator={false}
         >
+          {/* Header */}
           <View className="mb-5 flex-row items-center">
             <TouchableOpacity
               onPress={() => router.back()}
@@ -133,7 +169,7 @@ export default function VaultCategoryScreen() {
               </Text>
               <Text className="font-sans text-sm text-ink-muted">
                 {categoryItems.length} item
-                {categoryItems.length === 1 ? "" : "s"}
+                {categoryItems.length === 1 ? '' : 's'}
               </Text>
             </View>
             <TouchableOpacity
@@ -146,7 +182,7 @@ export default function VaultCategoryScreen() {
               className="h-10 w-10 items-center justify-center rounded-full bg-primary"
               onPress={() =>
                 router.push({
-                  pathname: "/(app)/add-vault-item",
+                  pathname: '/(app)/add-vault-item',
                   params: { categoryId: category.id },
                 })
               }
@@ -166,13 +202,14 @@ export default function VaultCategoryScreen() {
                 No items
               </Text>
               <Text className="mb-6 text-center font-sans text-sm leading-5 text-ink-muted">
-                Add a note, possession, or save something from Memories.
+                Add a note, possession, document, or save something from
+                Memories.
               </Text>
               <TouchableOpacity
                 className="rounded-full bg-primary px-8 py-3.5"
                 onPress={() =>
                   router.push({
-                    pathname: "/(app)/add-vault-item",
+                    pathname: '/(app)/add-vault-item',
                     params: { categoryId: category.id },
                   })
                 }
@@ -183,49 +220,74 @@ export default function VaultCategoryScreen() {
               </TouchableOpacity>
             </View>
           ) : (
-            categoryItems.map((item) => (
-              <View
-                key={item.id}
-                className="mb-3 flex-row items-center rounded-2xl bg-white px-3 py-3"
-              >
-                {item.imageUrl ? (
-                  <Image
-                    source={{ uri: item.imageUrl }}
-                    style={{ width: 52, height: 52, borderRadius: 12 }}
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="h-[52px] w-[52px] items-center justify-center rounded-xl bg-[#EEEAF8]">
-                    <Ionicons
-                      name={typeIcon[item.type] || "document-text-outline"}
-                      size={22}
-                      color="#7C3AED"
-                    />
-                  </View>
-                )}
-                <View className="ml-3 flex-1">
-                  <Text
-                    className="font-semibold text-[15px] text-ink"
-                    numberOfLines={1}
-                  >
-                    {item.title}
-                  </Text>
-                  <Text
-                    className="mt-0.5 font-sans text-xs capitalize text-ink-muted"
-                    numberOfLines={1}
-                  >
-                    {item.type.replace("_", " ")}
-                    {item.description ? ` · ${item.description}` : ""}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  className="ml-2 h-9 w-9 items-center justify-center"
-                  onPress={() => handleDeleteItem(item)}
+            categoryItems.map((item) => {
+              const hasFile = !!(item.fileUrl || item.imageUrl);
+              return (
+                <View
+                  key={item.id}
+                  className="mb-3 flex-row items-center rounded-2xl bg-white px-3 py-3"
                 >
-                  <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                </TouchableOpacity>
-              </View>
-            ))
+                  <TouchableOpacity
+                    className="flex-1 flex-row items-center"
+                    onPress={() => openItem(item)}
+                    activeOpacity={0.85}
+                  >
+                    {item.imageUrl ? (
+                      <Image
+                        source={{ uri: item.imageUrl }}
+                        style={{ width: 52, height: 52, borderRadius: 12 }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="h-[52px] w-[52px] items-center justify-center rounded-xl bg-[#EEEAF8]">
+                        <Ionicons
+                          name={typeIcon[item.type] || 'document-text-outline'}
+                          size={22}
+                          color="#7C3AED"
+                        />
+                      </View>
+                    )}
+                    <View className="ml-3 flex-1">
+                      <Text
+                        className="font-semibold text-[15px] text-ink"
+                        numberOfLines={1}
+                      >
+                        {item.title}
+                      </Text>
+                      <Text
+                        className="mt-0.5 font-sans text-xs capitalize text-ink-muted"
+                        numberOfLines={1}
+                      >
+                        {item.type.replace('_', ' ')}
+                        {item.fileName
+                          ? ` · ${item.fileName}`
+                          : item.description
+                            ? ` · ${item.description}`
+                            : hasFile
+                              ? ' · Tap to open'
+                              : ''}
+                      </Text>
+                    </View>
+                    {hasFile ? (
+                      <Ionicons
+                        name="open-outline"
+                        size={18}
+                        color="#9CA3AF"
+                        style={{ marginRight: 4 }}
+                      />
+                    ) : null}
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    className="ml-1 h-9 w-9 items-center justify-center"
+                    onPress={() => handleDeleteItem(item)}
+                    hitSlop={8}
+                  >
+                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  </TouchableOpacity>
+                </View>
+              );
+            })
           )}
         </ScrollView>
       </View>

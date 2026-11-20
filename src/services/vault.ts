@@ -21,6 +21,9 @@ import type {
   CreateVaultCategoryInput,
   CreateVaultItemInput,
 } from '../types';
+import { MEDIA_BUCKET, supabase } from '../config/supabase';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode } from 'base64-arraybuffer';
 
 function categoriesRef() {
   return collection(db, 'vaultCategories');
@@ -155,6 +158,54 @@ export async function getItemsForCategory(
   return list;
 }
 
-export async function deleteItem(itemId: string): Promise<void> {
-  await deleteDoc(doc(db, 'vaultItems', itemId));
+
+export async function uploadVaultFile(
+  familyId: string,
+  userId: string,
+  uri: string,
+  fileName: string,
+  mimeType: string = 'application/octet-stream'
+): Promise<{ fileUrl: string; filePath: string; fileName: string }> {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const bytes = decode(base64);
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');
+  const filePath = `${familyId}/vault/${userId}_${Date.now()}_${safeName}`;
+
+  const { error } = await supabase.storage.from(MEDIA_BUCKET).upload(filePath, bytes, {
+    contentType: mimeType,
+    upsert: false,
+  });
+
+  if (error) {
+    throw new Error(error.message || 'Vault file upload failed');
+  }
+
+  const { data } = supabase.storage.from(MEDIA_BUCKET).getPublicUrl(filePath);
+  if (!data?.publicUrl) {
+    throw new Error('Could not get public URL for vault file');
+  }
+
+  return {
+    fileUrl: data.publicUrl,
+    filePath,
+    fileName: safeName,
+  };
+}
+
+export async function deleteItem(item: {
+  id: string;
+  filePath?: string | null;
+}): Promise<void> {
+  if (item.filePath) {
+    const { error } = await supabase.storage
+      .from(MEDIA_BUCKET)
+      .remove([item.filePath]);
+    if (error) {
+      console.warn('Vault file delete:', error.message);
+    }
+  }
+  await deleteDoc(doc(db, 'vaultItems', item.id));
 }

@@ -4,16 +4,16 @@ import React, {
   useContext,
   useEffect,
   useState,
-} from 'react';
-import { useAuth } from './AuthContext';
-import { useFamily } from './FamilyContext';
-import * as vaultService from '../services/vault';
+} from "react";
+import { useAuth } from "./AuthContext";
+import { useFamily } from "./FamilyContext";
+import * as vaultService from "../services/vault";
 import type {
   VaultCategory,
   VaultItem,
   CreateVaultCategoryInput,
   CreateVaultItemInput,
-} from '../types';
+} from "../types";
 
 type VaultContextValue = {
   categories: VaultCategory[];
@@ -59,8 +59,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       const list = await vaultService.getCategoriesForFamily(currentFamily.id);
       setCategories(list);
     } catch (e: any) {
-      console.warn('refreshCategories failed', e);
-      setError(e?.message ?? 'Could not load vault');
+      console.warn("refreshCategories failed", e);
+      setError(e?.message ?? "Could not load vault");
     } finally {
       setCategoriesLoading(false);
     }
@@ -73,17 +73,17 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const createCategory = useCallback(
     async (input: CreateVaultCategoryInput) => {
       if (!user?.uid || !currentFamily?.id) {
-        throw new Error('You must be signed in and have a family');
+        throw new Error("You must be signed in and have a family");
       }
       const cat = await vaultService.createCategory(
         user.uid,
         currentFamily.id,
-        input
+        input,
       );
       setCategories((prev) => [cat, ...prev]);
       return cat;
     },
-    [user?.uid, currentFamily?.id]
+    [user?.uid, currentFamily?.id],
   );
 
   const removeCategory = useCallback(async (categoryId: string) => {
@@ -98,8 +98,8 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
       const list = await vaultService.getItemsForCategory(categoryId);
       setCategoryItems(list);
     } catch (e: any) {
-      console.warn('loadCategoryItems failed', e);
-      setError(e?.message ?? 'Could not load items');
+      console.warn("loadCategoryItems failed", e);
+      setError(e?.message ?? "Could not load items");
       setCategoryItems([]);
     } finally {
       setCategoryItemsLoading(false);
@@ -113,22 +113,22 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
   const addItem = useCallback(
     async (input: CreateVaultItemInput) => {
       if (!user?.uid || !currentFamily?.id) {
-        throw new Error('You must be signed in and have a family');
+        throw new Error("You must be signed in and have a family");
       }
       const item = await vaultService.createItem(
         user.uid,
         currentFamily.id,
-        input
+        input,
       );
       setCategoryItems((prev) => [item, ...prev]);
       return item;
     },
-    [user?.uid, currentFamily?.id]
+    [user?.uid, currentFamily?.id],
   );
 
-  const removeItem = useCallback(async (itemId: string) => {
-    await vaultService.deleteItem(itemId);
-    setCategoryItems((prev) => prev.filter((i) => i.id !== itemId));
+  const removeItem = useCallback(async (item: VaultItem) => {
+    await vaultService.deleteItem({ id: item.id, filePath: item.filePath });
+    setCategoryItems((prev) => prev.filter((i) => i.id !== item.id));
   }, []);
 
   return (
@@ -156,6 +156,6 @@ export function VaultProvider({ children }: { children: React.ReactNode }) {
 
 export function useVault() {
   const ctx = useContext(VaultContext);
-  if (!ctx) throw new Error('useVault must be used within VaultProvider');
+  if (!ctx) throw new Error("useVault must be used within VaultProvider");
   return ctx;
 }

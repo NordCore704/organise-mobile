@@ -5,6 +5,7 @@ import { Tabs, router, useSegments } from "expo-router";
 import { TouchableOpacity } from "react-native";
 import { useFamily } from "../../../src/contexts/FamilyContext";
 import { useEffect } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 function CenterAddButton() {
   return (
@@ -20,7 +21,8 @@ function CenterAddButton() {
 
 export default function TabsLayout() {
   const { currentFamily } = useFamily();
-const { lock, pinEnabled } = useVaultLock();
+  const { lock, pinEnabled } = useVaultLock();
+  const insets = useSafeAreaInsets();
   const segments = useSegments();
 
   // Example segments: ['(app)', '(tabs)', 'vault'] or ['(app)', '(tabs)', 'index']
@@ -49,8 +51,8 @@ const { lock, pinEnabled } = useVaultLock();
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopColor: "#F3F4F6",
-          height: 64,
-          paddingBottom: 8,
+          height: 64 + insets.bottom,
+          paddingBottom: Math.max(insets.bottom, 8),
           paddingTop: 6,
         },
         tabBarLabelStyle: {

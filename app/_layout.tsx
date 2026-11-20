@@ -1,6 +1,6 @@
 import "react-native-gesture-handler";
 import "../global.css";
-
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useEffect } from "react";
 import { ActivityIndicator, View, Text } from "react-native";
 import { Stack, useRouter, useSegments } from "expo-router";
@@ -109,6 +109,7 @@ export default function RootLayout() {
   }
 
   return (
+    <SafeAreaProvider>
     <AuthProvider>
       <FamilyProvider>
         <TasksProvider>
@@ -122,5 +123,6 @@ export default function RootLayout() {
         </TasksProvider>
       </FamilyProvider>
     </AuthProvider>
+    </SafeAreaProvider>
   );
 }
