@@ -24,6 +24,7 @@ import type {
 import { MEDIA_BUCKET, supabase } from '../config/supabase';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode } from 'base64-arraybuffer';
+import type { VaultUsage } from '../types';
 
 function categoriesRef() {
   return collection(db, 'vaultCategories');
@@ -208,4 +209,25 @@ export async function deleteItem(item: {
     }
   }
   await deleteDoc(doc(db, 'vaultItems', item.id));
+}
+
+export async function getVaultUsageForFamily(
+  familyId: string
+): Promise<VaultUsage> {
+  const q = query(itemsRef(), where('familyId', '==', familyId));
+  const snap = await getDocs(q);
+
+  let fileCount = 0;
+  let totalBytes = 0;
+
+  snap.docs.forEach((d) => {
+    const data = d.data();
+    const hasFile = !!(data.fileUrl || data.filePath);
+    if (hasFile) {
+      fileCount += 1;
+      totalBytes += typeof data.fileSize === 'number' ? data.fileSize : 0;
+    }
+  });
+
+  return { fileCount, totalBytes };
 }

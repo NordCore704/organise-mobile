@@ -3,6 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 export type MembershipRole = 'admin' | 'member' | 'viewer';
 export type MembershipStatus = 'active' | 'soft_deleted';
 export type InviteCodeStatus = 'active' | 'revoked' | 'expired';
+export type PlanId = 'free' | 'pro';
 
 export interface User {
   uid: string;
@@ -212,4 +213,16 @@ export type CreateVaultItemInput = {
   fileName?: string;
   albumId?: string;
   memoryId?: string;
+};
+
+export type PlanLimits = {
+  id: PlanId;
+  name: string;
+  maxVaultFiles: number;
+  maxVaultBytes: number;
+};
+
+export type VaultUsage = {
+  fileCount: number;
+  totalBytes: number;
 };

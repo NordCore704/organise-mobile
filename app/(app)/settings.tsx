@@ -84,8 +84,17 @@ export default function SettingsScreen() {
           />
         </View>
 
+        <Text className="mb-2 font-semibold text-sm text-ink-muted">VAULT PLANS</Text>
+<View className="mb-6 overflow-hidden rounded-3xl bg-white shadow-sm">
+     <TouchableOpacity
+    className="flex-row items-center justify-between px-4 py-3.5" onPress={() => router.push('/(app)/plans')}>
+  <Text className="font-medium text-sm text-ink">Vault plan & usage</Text>
+</TouchableOpacity>
+</View>
+
 <Text className="mb-2 font-semibold text-sm text-ink-muted">VAULT SECURITY</Text>
 <View className="mb-6 overflow-hidden rounded-3xl bg-white shadow-sm">
+ 
   <TouchableOpacity
     className="flex-row items-center justify-between px-4 py-3.5"
     onPress={() => router.push('/(app)/vault-pin')}

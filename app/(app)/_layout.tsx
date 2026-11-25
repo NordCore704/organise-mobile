@@ -20,6 +20,7 @@ export default function AppLayout() {
         name="add-vault-category"
         options={{ presentation: "modal" }}
       />
+      <Stack.Screen name="plans" />
       <Stack.Screen name="add-vault-item" options={{ presentation: "modal" }} />
       <Stack.Screen name="save-to-vault" options={{ presentation: "modal" }} />
       <Stack.Screen name="vault-pin" />

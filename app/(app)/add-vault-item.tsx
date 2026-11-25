@@ -19,6 +19,7 @@ import { useFamily } from '../../src/contexts/FamilyContext';
 import { useVault } from '../../src/contexts/VaultContext';
 import * as vaultService from '../../src/services/vault';
 import type { VaultItemType } from '../../src/types';
+import * as vaultLimits from '../../src/services/vaultLimit';
 
 const TYPES: { key: VaultItemType; label: string }[] = [
   { key: 'note', label: 'Note' },
@@ -87,6 +88,24 @@ export default function AddVaultItemScreen() {
       Alert.alert('Error', 'Not signed in or no family');
       return;
     }
+
+    const check = await vaultLimits.canAddVaultFile(
+  currentFamily.id,
+  currentFamily.planId,
+  picked?.size ?? 0
+);
+
+if (!check.ok) {
+  Alert.alert('Limit reached', check.reason, [
+    { text: 'Not now', style: 'cancel' },
+    {
+      text: 'View plans',
+      onPress: () => router.push('/(app)/plans'),
+    },
+  ]);
+  setSubmitting(false);
+  return;
+}
 
     setSubmitting(true);
     try {
